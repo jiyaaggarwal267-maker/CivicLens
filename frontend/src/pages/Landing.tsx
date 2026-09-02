@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Camera,
+  Check,
   CheckCircle2,
   Copy,
   Gauge,
@@ -11,6 +12,7 @@ import {
   ShieldCheck,
   Sparkles,
   TrendingUp,
+  User,
   Users,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -19,6 +21,44 @@ import { IssueMap } from '@/components/map/IssueMap'
 import { api } from '@/lib/api'
 import { CATEGORY_LABELS } from '@/lib/format'
 import type { MapIssue, Stats } from '@/types'
+import { cn } from '@/lib/utils'
+import citizenShowcase from '@/assets/showcase-citizen.png'
+import authorityShowcase from '@/assets/showcase-authority.png'
+
+const PORTALS = [
+  {
+    key: 'citizen' as const,
+    label: 'Citizen View',
+    icon: User,
+    path: '/issues/CIV-042',
+    heading: 'Report it once. Track it to the end.',
+    description:
+      "Every citizen gets an honest, live view of their issue — the AI classification, the priority score, every report that got consolidated into it, and a full timeline from submission to verified fix.",
+    bullets: [
+      'Photo + map-based reporting in under a minute',
+      'A real priority score, not a black box',
+      'The final "was this actually fixed?" confirmation',
+    ],
+    cta: { label: 'Report an Issue', to: '/report' },
+    image: citizenShowcase,
+  },
+  {
+    key: 'authority' as const,
+    label: 'Authority Console',
+    icon: ShieldCheck,
+    path: '/authority',
+    heading: 'One queue. Sorted by what actually matters.',
+    description:
+      'Authorities see every issue ranked by a transparent priority score, with the right department pre-recommended, one-click status transitions, and live status/category analytics.',
+    bullets: [
+      'Priority-sorted queue, department auto-recommended',
+      'Guided resolution flow with AI-assisted verification',
+      'Live status-breakdown and resolution-rate analytics',
+    ],
+    cta: { label: 'Open Authority Dashboard', to: '/authority' },
+    image: authorityShowcase,
+  },
+]
 
 const STEPS = [
   {
@@ -56,6 +96,8 @@ const STEPS = [
 export function Landing() {
   const [mapIssues, setMapIssues] = useState<MapIssue[]>([])
   const [stats, setStats] = useState<Stats | null>(null)
+  const [activePortalKey, setActivePortalKey] = useState<(typeof PORTALS)[number]['key']>('citizen')
+  const activePortal = PORTALS.find((p) => p.key === activePortalKey) ?? PORTALS[0]
 
   useEffect(() => {
     api.getMapIssues().then((res) => setMapIssues(res.issues)).catch(() => {})
@@ -147,9 +189,9 @@ export function Landing() {
             )}
           </div>
 
-          <div className="map-3d-frame relative">
+          <div className="map-3d-frame relative mt-8 sm:mt-10">
             {topIssue && (
-              <div className="glass absolute -top-6 left-6 z-[401] hidden animate-fade-in rounded-xl px-4 py-3 sm:block">
+              <div className="glass absolute -top-8 left-6 z-[401] hidden animate-fade-in rounded-xl px-4 py-3 sm:block">
                 <p className="text-xs font-semibold text-muted-foreground">
                   {topIssue.code} · {CATEGORY_LABELS[topIssue.category]}, {topIssue.locationName.split(',')[0]}
                 </p>
@@ -161,6 +203,80 @@ export function Landing() {
             )}
             <div className="map-3d-frame-inner">
               <IssueMap issues={mapIssues} className="h-[420px] shadow-elevated lg:h-[480px]" interactive={false} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Product showcase */}
+      <section className="border-b border-border bg-white py-16 lg:py-24">
+        <div className="container">
+          <div className="mx-auto max-w-2xl text-center">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-civic-200 bg-civic-50 px-3 py-1 text-xs font-semibold text-civic-700">
+              <Layers className="h-3 w-3" />
+              Two portals, one live dataset
+            </span>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight text-foreground">See it from both sides</h2>
+            <p className="mt-3 text-muted-foreground">
+              The same issue looks different depending on who's looking at it — a citizen sees their report through
+              to resolution, an authority sees an operational queue. This is what each of them actually sees.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-10 flex max-w-md items-center rounded-lg border border-border bg-secondary/60 p-1 text-sm font-semibold">
+            {PORTALS.map((portal) => (
+              <button
+                key={portal.key}
+                onClick={() => setActivePortalKey(portal.key)}
+                className={cn(
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-2 transition-colors',
+                  activePortalKey === portal.key ? 'bg-white text-civic-700 shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <portal.icon className="h-3.5 w-3.5" />
+                {portal.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-10 grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+            <div className="order-2 lg:order-1">
+              <h3 className="text-2xl font-bold tracking-tight text-foreground">{activePortal.heading}</h3>
+              <p className="mt-3 text-muted-foreground">{activePortal.description}</p>
+              <ul className="mt-6 space-y-3">
+                {activePortal.bullets.map((bullet) => (
+                  <li key={bullet} className="flex items-start gap-2.5 text-sm text-foreground">
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-civic-50 text-civic-600">
+                      <Check className="h-3 w-3" />
+                    </span>
+                    {bullet}
+                  </li>
+                ))}
+              </ul>
+              <Button asChild className="mt-8 gap-2 transition-transform hover:-translate-y-0.5">
+                <Link to={activePortal.cta.to}>
+                  {activePortal.cta.label} <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <div className="overflow-hidden rounded-xl border border-border bg-white shadow-elevated">
+                <div className="flex items-center gap-1.5 border-b border-border bg-secondary/60 px-4 py-2.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                  <span className="ml-3 truncate rounded-md border border-border bg-white px-2.5 py-1 font-mono text-[0.7rem] text-muted-foreground">
+                    civiclens.app{activePortal.path}
+                  </span>
+                </div>
+                <img
+                  key={activePortal.key}
+                  src={activePortal.image}
+                  alt={`CivicLens ${activePortal.label} screenshot`}
+                  className="block w-full animate-fade-in"
+                />
+              </div>
             </div>
           </div>
         </div>

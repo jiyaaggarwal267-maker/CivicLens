@@ -1,0 +1,190 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 214 95% 93%;
+    --accent-foreground: 221 83% 40%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 26 40% 15%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/60 shadow-glass;
+  }
+  .glass-dark {
+    background: rgba(15, 23, 42, 0.55);
+    @apply backdrop-blur-md border border-white/10 shadow-glass;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+.leaflet-container {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  z-index: 0;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 32px 0 rgb(15 23 42 / 0.18);
+}
+
+.leaflet-popup-tip {
+  box-shadow: none;
+}
+
+/* 3D-style elevated pin markers (see components/map/IssueMap.tsx) */
+.civiclens-pin-wrap {
+  position: relative;
+  width: 34px;
+  height: 44px;
+  animation: civiclens-pin-drop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.civiclens-pin {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: linear-gradient(135deg, var(--pin-color), var(--pin-color-dark));
+  border: 2px solid white;
+  box-shadow:
+    0 6px 10px -2px rgb(15 23 42 / 0.4),
+    inset 0 2px 3px rgb(255 255 255 / 0.5);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.civiclens-pin-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: white;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.civiclens-pin-shadow {
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  width: 16px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgb(15 23 42 / 0.35), transparent 72%);
+  transform: translateX(-50%);
+}
+
+.civiclens-pin-badge {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 2px solid white;
+  background: #0f172a;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.civiclens-pin-wrap:hover .civiclens-pin,
+.civiclens-pin-wrap.is-focused .civiclens-pin {
+  transform: rotate(-45deg) scale(1.18) translateY(-4px);
+  box-shadow:
+    0 12px 18px -4px rgb(15 23 42 / 0.45),
+    inset 0 2px 3px rgb(255 255 255 / 0.5);
+}
+
+@keyframes civiclens-pin-drop {
+  0% {
+    transform: translateY(-18px);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(3px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Decorative tilted 3D frame for the landing-page hero map preview */
+.map-3d-frame {
+  perspective: 1600px;
+}
+
+.map-3d-frame-inner {
+  transform: rotateX(8deg) rotateY(-10deg) scale(0.97);
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.map-3d-frame:hover .map-3d-frame-inner {
+  transform: rotateX(0deg) rotateY(0deg) scale(1);
+}

@@ -14,6 +14,23 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000;
 
+// Hosts like Render's free tier give the app a fresh, empty disk on every
+// restart (redeploy, or even an idle spin-down/wake cycle) — but the database
+// lives elsewhere (e.g. Neon) and always persists. So after a restart, the DB
+// still references demo photos (e.g. /uploads/pothole-1.png) that no longer
+// exist on disk. The source images are committed to git, so restore any
+// missing ones on every boot — no manual "reload demo" step required, and
+// this runs before the server accepts its first request.
+const SEED_ASSETS_DIR = path.join(__dirname, "..", "prisma", "seed-assets");
+if (fs.existsSync(SEED_ASSETS_DIR)) {
+  for (const file of fs.readdirSync(SEED_ASSETS_DIR)) {
+    const dest = path.join(UPLOAD_DIR_PATH, file);
+    if (!fs.existsSync(dest)) {
+      fs.copyFileSync(path.join(SEED_ASSETS_DIR, file), dest);
+    }
+  }
+}
+
 app.use(cors({ origin: process.env.CORS_ORIGIN?.split(",") ?? "*" }));
 app.use(morgan("dev"));
 app.use(express.json());

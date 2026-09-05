@@ -61,6 +61,45 @@ if (fs.existsSync(FRONTEND_DIST)) {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`CivicLens API listening on http://localhost:${PORT}`);
 });
+
+// Graceful shutdown — close open connections before exiting so Render marks
+// the deploy/restart as healthy instead of timing out.
+function shutdown(signal: string) {
+  console.log(`\n${signal} received – shutting down gracefully…`);
+  server.close(() => {
+    console.log("HTTP server closed.");
+    process.exit(0);
+  });
+  // Force-kill after 10 s if connections hang
+  setTimeout(() => {
+    console.error("Forced shutdown after timeout.");
+    process.exit(1);
+  }, 10_000);
+}
+
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+// Prevent crashes from unhandled async errors — log and keep running.
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
+
+// Keep-alive ping: Render free-tier spins down after ~15 min of inactivity.
+// This pings our own health endpoint every 10 min to keep the service awake.
+if (process.env.NODE_ENV === "production") {
+  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
+  setInterval(async () => {
+    try {
+      await fetch(`http://localhost:${PORT}/api/health`);
+    } catch {
+      // Server might be mid-restart; ignore
+    }
+  }, PING_INTERVAL);
+}

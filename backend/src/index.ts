@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import morgan from "morgan";
 import { UPLOAD_DIR_PATH } from "./middleware/upload";
+import { prisma } from "./db/prisma";
 import reportsRoutes from "./routes/reports.routes";
 import issuesRoutes from "./routes/issues.routes";
 import mapRoutes from "./routes/map.routes";
@@ -37,6 +38,23 @@ app.use(express.json());
 app.use("/uploads", express.static(UPLOAD_DIR_PATH));
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok", service: "CivicLens API" }));
+
+// Serves images stored in Postgres (StoredImage). Report/Resolution imageUrl
+// fields reference /api/images/<id>.
+app.get("/api/images/:id", async (req, res) => {
+  try {
+    const row = await prisma.storedImage.findUnique({ where: { id: req.params.id } });
+    if (!row) {
+      res.status(404).json({ error: "Image not found" });
+      return;
+    }
+    res.setHeader("Content-Type", row.mimeType);
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    res.send(row.data);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to load image" });
+  }
+});
 
 app.use("/api/reports", reportsRoutes);
 app.use("/api/issues", issuesRoutes);

@@ -161,3 +161,16 @@ model IssueEvent {
 
   @@index([issueId])
 }
+
+// Image binary blobs stored directly in Postgres (BYTEA). Free-tier hosts
+// (Render, Neon, Supabase) wipe or recycle ephemeral disks but always keep the
+// database, so holding image bytes in the DB means uploaded photos survive
+// restarts/redeploys with no external object-storage account or credit card.
+// `id` is the same key referenced by Report.imageUrl / Resolution.*ImageUrl as
+// /api/images/<id>.
+model StoredImage {
+  id        String   @id
+  data      Bytes
+  mimeType  String
+  createdAt DateTime @default(now())
+}

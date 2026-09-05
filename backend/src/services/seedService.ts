@@ -10,7 +10,7 @@ import { Category, IssueStatus, Severity, TrafficExposure } from "@prisma/client
 
 const ASSETS_DIR = path.join(__dirname, "..", "..", "prisma", "seed-assets");
 
-function seedImage(filename: string): string {
+function seedImage(filename: string): Promise<string> {
   const data = fs.readFileSync(path.join(ASSETS_DIR, filename));
   return saveBuffer(filename, data);
 }
@@ -402,7 +402,7 @@ export async function seedDatabase() {
         data: {
           issueId: issue.id,
           reporterName: r.reporterName,
-          imageUrl: seedImage(r.imageFile),
+          imageUrl: await seedImage(r.imageFile),
           description: r.description,
           latitude: r.latitude,
           longitude: r.longitude,
@@ -419,8 +419,8 @@ export async function seedDatabase() {
       await prisma.resolution.create({
         data: {
           issueId: issue.id,
-          beforeImageUrl: spec.reports[0] ? seedImage(spec.reports[0].imageFile) : "",
-          afterImageUrl: seedImage(spec.resolution.afterImageFile),
+          beforeImageUrl: spec.reports[0] ? await seedImage(spec.reports[0].imageFile) : "",
+          afterImageUrl: await seedImage(spec.resolution.afterImageFile),
           verificationStatus: spec.resolution.verificationStatus,
           verificationConfidence: spec.resolution.verificationConfidence,
           verificationNotes: spec.resolution.verificationNotes,

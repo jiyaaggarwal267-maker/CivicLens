@@ -4,7 +4,7 @@ import { Department, IssueStatus } from "@prisma/client";
 import { prisma } from "../db/prisma";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/apiError";
-import { uploadedFileToUrl } from "../services/storageService";
+import { storeUploadedFile } from "../services/storageService";
 import { ingestReport } from "../services/reportIngestService";
 import { verifyResolution } from "../services/geminiService";
 import { computePriority, ageInDaysSince, DEPARTMENT_LABELS } from "../services/priorityService";
@@ -92,10 +92,9 @@ export const addReportToIssue = asyncHandler(async (req: Request, res: Response)
   const parsed = addReportSchema.safeParse(req.body);
   if (!parsed.success) throw new ApiError(400, parsed.error.issues.map((i) => i.message).join(", "));
 
-  const imageUrl = uploadedFileToUrl(req.file);
+  const imageUrl = await storeUploadedFile(req.file);
   const result = await ingestReport({
     imageUrl,
-    imagePath: req.file.path,
     description: parsed.data.description,
     latitude: parsed.data.latitude,
     longitude: parsed.data.longitude,
@@ -160,7 +159,7 @@ export const addResolution = asyncHandler(async (req: Request, res: Response) =>
   if (issue.reports.length === 0) throw new ApiError(400, "This issue has no citizen photo to compare against.");
 
   const beforeImageUrl = issue.reports[0].imageUrl;
-  const afterImageUrl = uploadedFileToUrl(req.file);
+  const afterImageUrl = await storeUploadedFile(req.file);
 
   const resolution = await prisma.resolution.create({
     data: { issueId: issue.id, beforeImageUrl, afterImageUrl, verificationStatus: "PENDING" },
@@ -177,10 +176,7 @@ export const runVerification = asyncHandler(async (req: Request, res: Response) 
   const resolution = await prisma.resolution.findFirst({ where: { issueId: issue.id }, orderBy: { createdAt: "desc" } });
   if (!resolution) throw new ApiError(400, "Upload resolution evidence before running verification.");
 
-  const toRelativePath = (url: string) => url.replace(/^.*\/uploads\//, "");
   const result = await verifyResolution({
-    beforeImagePath: toRelativePath(resolution.beforeImageUrl),
-    afterImagePath: toRelativePath(resolution.afterImageUrl),
     beforeUrl: resolution.beforeImageUrl,
     afterUrl: resolution.afterImageUrl,
     category: issue.category,

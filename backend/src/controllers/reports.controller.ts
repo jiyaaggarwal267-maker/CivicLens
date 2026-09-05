@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiError } from "../utils/apiError";
-import { uploadedFileToUrl } from "../services/storageService";
+import { storeUploadedFile } from "../services/storageService";
 import { ingestReport } from "../services/reportIngestService";
 import { prisma } from "../db/prisma";
 
@@ -25,10 +25,9 @@ export const createReport = asyncHandler(async (req: Request, res: Response) => 
     throw new ApiError(400, parsed.error.issues.map((i) => i.message).join(", "));
   }
 
-  const imageUrl = uploadedFileToUrl(req.file);
+  const imageUrl = await storeUploadedFile(req.file);
   const result = await ingestReport({
     imageUrl,
-    imagePath: req.file.path,
     description: parsed.data.description,
     latitude: parsed.data.latitude,
     longitude: parsed.data.longitude,

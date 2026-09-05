@@ -22,7 +22,6 @@ function maxSeverity(a: Severity, b: Severity): Severity {
 
 export interface IngestParams {
   imageUrl: string;
-  imagePath: string;
   description?: string;
   latitude: number;
   longitude: number;
@@ -48,7 +47,7 @@ async function logEvent(issueId: string, type: string, message: string) {
 
 export async function ingestReport(params: IngestParams): Promise<IngestResult> {
   const classification = await classifyCivicImage({
-    imagePath: params.imagePath,
+    imageUrl: params.imageUrl,
     description: params.description,
     categoryHint: params.categoryHint,
   });

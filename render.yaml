@@ -2,14 +2,10 @@ services:
   - type: web
     name: civiclens
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install --prefix frontend && npm run build --prefix frontend && npm install --prefix backend && npm run build --prefix backend
     startCommand: npm run start --prefix backend
     healthCheckPath: /api/health
-    disk:
-      name: uploads
-      mountPath: /opt/render/project/src/backend/uploads
-      sizeGB: 1
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -18,4 +14,16 @@ services:
       - key: CORS_ORIGIN
         sync: false
       - key: GEMINI_API_KEY
+        sync: false
+      - key: OBJECT_STORAGE_URL
+        sync: false
+      - key: OBJECT_STORAGE_ENDPOINT
+        sync: false
+      - key: OBJECT_STORAGE_REGION
+        sync: false
+      - key: OBJECT_STORAGE_BUCKET
+        sync: false
+      - key: OBJECT_STORAGE_ACCESS_KEY
+        sync: false
+      - key: OBJECT_STORAGE_SECRET_KEY
         sync: false

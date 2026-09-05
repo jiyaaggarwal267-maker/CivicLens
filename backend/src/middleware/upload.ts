@@ -1,18 +1,13 @@
 import multer from "multer";
 import path from "path";
-import { randomUUID } from "crypto";
 import fs from "fs";
 
 const UPLOAD_DIR = path.join(__dirname, "..", "..", "uploads");
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    cb(null, `${randomUUID()}${ext}`);
-  },
-});
+// Buffers files in memory so the storage decision happens in one place
+// (storageService): object storage when configured, local disk otherwise.
+const storage = multer.memoryStorage();
 
 const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
 

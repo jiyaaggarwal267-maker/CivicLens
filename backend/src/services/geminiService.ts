@@ -3,10 +3,9 @@
 // GEMINI_API_KEY is set; otherwise falls back to a deterministic mock so the
 // demo never breaks on a missing key. Callers (controllers/services) never
 // know which mode is active — they just get back a typed result.
-import fs from "fs";
 import path from "path";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { UPLOAD_DIR_PATH } from "../middleware/upload";
+import { readImageBuffer } from "./storageService";
 
 export type CategoryValue =
   | "POTHOLE"
@@ -116,12 +115,12 @@ function fallbackClassify(description: string, filename: string, categoryHint?: 
 }
 
 export async function classifyCivicImage(params: {
-  imagePath: string;
+  imageUrl: string;
   description?: string;
   categoryHint?: CategoryValue;
 }): Promise<ClassificationResult> {
   const description = params.description ?? "";
-  const filename = path.basename(params.imagePath);
+  const filename = path.basename(params.imageUrl);
   const client = getGenAI();
 
   if (!client) {
@@ -129,11 +128,8 @@ export async function classifyCivicImage(params: {
   }
 
   try {
-    const absolutePath = path.isAbsolute(params.imagePath)
-      ? params.imagePath
-      : path.join(UPLOAD_DIR_PATH, params.imagePath);
-    const imageData = fs.readFileSync(absolutePath);
-    const mimeType = filename.endsWith(".png") ? "image/png" : "image/jpeg";
+    const imageData = await readImageBuffer(params.imageUrl);
+    const mimeType = filename.endsWith(".png") ? "image/png" : filename.endsWith(".webp") ? "image/webp" : "image/jpeg";
 
     const model = client.getGenerativeModel({ model: "gemini-flash-lite-latest" });
     const prompt = `You are a civic-infrastructure inspection assistant. Look at this photo of a reported civic issue${
@@ -180,8 +176,6 @@ function fallbackVerify(beforeUrl: string, afterUrl: string): VerificationResult
 }
 
 export async function verifyResolution(params: {
-  beforeImagePath: string;
-  afterImagePath: string;
   beforeUrl: string;
   afterUrl: string;
   category: CategoryValue;
@@ -192,21 +186,17 @@ export async function verifyResolution(params: {
   }
 
   try {
-    const readImage = (p: string) => {
-      const absolutePath = path.isAbsolute(p) ? p : path.join(UPLOAD_DIR_PATH, p);
-      return fs.readFileSync(absolutePath);
-    };
-    const before = readImage(params.beforeImagePath);
-    const after = readImage(params.afterImagePath);
-    const mimeType = (p: string) => (p.endsWith(".png") ? "image/png" : "image/jpeg");
+    const before = await readImageBuffer(params.beforeUrl);
+    const after = await readImageBuffer(params.afterUrl);
+    const mimeType = (url: string) => (url.endsWith(".png") ? "image/png" : url.endsWith(".webp") ? "image/webp" : "image/jpeg");
 
     const model = client.getGenerativeModel({ model: "gemini-flash-lite-latest" });
     const prompt = `You are verifying whether a reported civic issue (category: ${params.category}) was resolved. The first image is the citizen's original "before" report photo. The second image is the authority's "after" repair photo. Compare them and respond with ONLY compact JSON:
 {"status":"LIKELY_RESOLVED|UNCLEAR|NOT_RESOLVED","confidence":0.0-1.0,"notes":"one short sentence"}`;
 
     const result = await model.generateContent([
-      { inlineData: { data: before.toString("base64"), mimeType: mimeType(params.beforeImagePath) } },
-      { inlineData: { data: after.toString("base64"), mimeType: mimeType(params.afterImagePath) } },
+      { inlineData: { data: before.toString("base64"), mimeType: mimeType(params.beforeUrl) } },
+      { inlineData: { data: after.toString("base64"), mimeType: mimeType(params.afterUrl) } },
       { text: prompt },
     ]);
     const raw = result.response.text().trim().replace(/^```json|```$/g, "");

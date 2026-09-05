@@ -70,7 +70,15 @@ app.use("/api", notFoundHandler);
 const FRONTEND_DIST = path.join(__dirname, "..", "..", "frontend", "dist");
 if (fs.existsSync(FRONTEND_DIST)) {
   app.use(express.static(FRONTEND_DIST));
-  app.get(/.*/, (_req, res, next) => {
+  // SPA fallback for real page navigations only. Anything that doesn't accept
+  // HTML (e.g. a missing /uploads/... image) gets a proper 404 instead of the
+  // index.html page, so broken images fail cleanly instead of rendering as
+  // unreadable HTML.
+  app.get(/.*/, (req, res, next) => {
+    if (!req.accepts("html")) {
+      res.status(404).end();
+      return;
+    }
     res.sendFile(path.join(FRONTEND_DIST, "index.html"), (err) => {
       if (err) next(err);
     });
@@ -109,15 +117,8 @@ process.on("uncaughtException", (err) => {
   console.error("Uncaught exception:", err);
 });
 
-// Keep-alive ping: Render free-tier spins down after ~15 min of inactivity.
-// This pings our own health endpoint every 10 min to keep the service awake.
-if (process.env.NODE_ENV === "production") {
-  const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
-  setInterval(async () => {
-    try {
-      await fetch(`http://localhost:${PORT}/api/health`);
-    } catch {
-      // Server might be mid-restart; ignore
-    }
-  }, PING_INTERVAL);
-}
+// NOTE: Render's free tier spins the service down after ~15 min of idle time,
+// and this loading/wake cycle cannot be removed in code (an in-process timer
+// stops when the instance sleeps). Keep the instance awake with an external
+// uptime monitor (e.g. UptimeRobot) hitting /api/issues/stats every 5 minutes,
+// which also keeps the Neon database from sleeping.
